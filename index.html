@@ -1,190 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math OCR - Expression Recognition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/cropperjs/dist/cropper.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/cropperjs/dist/cropper.min.css">
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-    <header class="bg-blue-600 text-white py-6 shadow-md">
-        <div class="container mx-auto px-4 text-center">
-            <h1 class="text-3xl font-bold">Math Expression OCR</h1>
-            <p class="mt-2 text-blue-100">Recognize and Solve Mathematical Expressions</p>
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import Cropper from "react-easy-crop";
+import { getCroppedImg } from "@/lib/cropImage";
+
+export default function MathOCRApp() {
+  const [image, setImage] = useState(null);
+  const [croppedArea, setCroppedArea] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedImage, setCroppedImage] = useState(null);
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedArea(croppedAreaPixels);
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setImage(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCrop = async () => {
+    if (image && croppedArea) {
+      const cropped = await getCroppedImg(image, croppedArea);
+      setCroppedImage(cropped);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center p-6">
+      <h1 className="text-2xl font-bold mb-4">Math OCR App</h1>
+      <input type="file" onChange={handleFileChange} className="mb-4" />
+      {image && (
+        <div className="relative w-80 h-80">
+          <Cropper
+            image={image}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+          />
         </div>
-    </header>
-
-    <main class="container mx-auto px-4 py-8 flex-grow">
-        <div class="bg-white shadow-lg rounded-lg p-6">
-            <div class="grid md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        <input 
-                            type="file" 
-                            id="imageUpload" 
-                            accept="image/*" 
-                            class="hidden"
-                        >
-                        <label 
-                            for="imageUpload" 
-                            class="block w-full text-center py-2 px-4 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition"
-                        >
-                            Upload Image
-                        </label>
-                    </div>
-
-                    <div id="imageContainer" class="relative" style="display: none;">
-                        <img 
-                            id="uploadedImage" 
-                            src="#" 
-                            alt="Uploaded Image" 
-                            class="max-w-full rounded-lg"
-                        >
-                        <button 
-                            id="cropToggle" 
-                            class="mt-2 w-full py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
-                        >
-                            Select Crop Area
-                        </button>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h2 class="text-xl font-semibold mb-4 text-gray-800">Results</h2>
-                        <div id="resultContainer" class="space-y-2">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Expression</label>
-                                <input 
-                                    type="text" 
-                                    id="expressionResult" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200" 
-                                    readonly
-                                >
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Solution</label>
-                                <input 
-                                    type="text" 
-                                    id="solutionResult" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200" 
-                                    readonly
-                                >
-                            </div>
-                            <button 
-                                id="submitToHuggingFace" 
-                                class="mt-4 w-full py-2 px-4 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition disabled:opacity-50"
-                                disabled
-                            >
-                                Submit to HuggingFace
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="bg-gray-800 text-white py-4">
-        <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2024 Math OCR. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const imageUpload = document.getElementById('imageUpload');
-            const uploadedImage = document.getElementById('uploadedImage');
-            const imageContainer = document.getElementById('imageContainer');
-            const cropToggle = document.getElementById('cropToggle');
-            const submitToHuggingFace = document.getElementById('submitToHuggingFace');
-            const expressionResult = document.getElementById('expressionResult');
-            const solutionResult = document.getElementById('solutionResult');
-
-            let cropper = null;
-            let originalImage = null;
-
-            imageUpload.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        // Resize image to 640px
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        const maxSize = 640;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > maxSize) {
-                                height *= maxSize / width;
-                                width = maxSize;
-                            }
-                        } else {
-                            if (height > maxSize) {
-                                width *= maxSize / height;
-                                height = maxSize;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        uploadedImage.src = canvas.toDataURL();
-                        imageContainer.style.display = 'block';
-                        submitToHuggingFace.disabled = false;
-                        originalImage = canvas.toDataURL();
-                    };
-                    img.src = event.target.result;
-                };
-
-                reader.readAsDataURL(file);
-            });
-
-            cropToggle.addEventListener('click', () => {
-                if (cropper) {
-                    cropper.destroy();
-                    cropper = null;
-                    cropToggle.textContent = 'Select Crop Area';
-                } else {
-                    cropper = new Cropper(uploadedImage, {
-                        aspectRatio: NaN,
-                        viewMode: 1,
-                    });
-                    cropToggle.textContent = 'Cancel Crop';
-                }
-            });
-
-            submitToHuggingFace.addEventListener('click', () => {
-                let imageToSubmit = originalImage;
-
-                if (cropper) {
-                    imageToSubmit = cropper.getCroppedCanvas().toDataURL();
-                }
-
-                // Here you would typically make an API call to your Hugging Face Space
-                // For demonstration, we'll just log the image
-                console.log('Submitting image to Hugging Face:', imageToSubmit);
-                
-                // Example fetch (replace with your actual Hugging Face Space endpoint)
-                // fetch('https://YOUR-HUGGINGFACE-SPACE-URL', {
-                //     method: 'POST',
-                //     body: JSON.stringify({ image: imageToSubmit }),
-                //     headers: { 'Content-Type': 'application/json' }
-                // })
-                // .then(response => response.json())
-                // .then(data => {
-                //     expressionResult.value = data.expression;
-                //     solutionResult.value = data.solution;
-                // });
-            });
-        });
-    </script>
-</body>
-</html>
+      )}
+      <Button onClick={handleCrop} className="mt-4">Crop & Process</Button>
+      {croppedImage && (
+        <Card className="mt-4 p-4">
+          <CardContent>
+            <img src={croppedImage} alt="Cropped" className="w-full h-auto" />
+            <p className="mt-2">Processing result will appear here...</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
