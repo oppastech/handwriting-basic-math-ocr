@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math OCR - Expression Recognition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/cropperjs/dist/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs/dist/cropper.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-blue-600 text-white py-6 shadow-md">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-3xl font-bold">Math Expression OCR</h1>
+            <p class="mt-2 text-blue-100">Recognize and Solve Mathematical Expressions</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                        <input 
+                            type="file" 
+                            id="imageUpload" 
+                            accept="image/*" 
+                            class="hidden"
+                        >
+                        <label 
+                            for="imageUpload" 
+                            class="block w-full text-center py-2 px-4 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition"
+                        >
+                            Upload Image
+                        </label>
+                    </div>
+
+                    <div id="imageContainer" class="relative" style="display: none;">
+                        <img 
+                            id="uploadedImage" 
+                            src="#" 
+                            alt="Uploaded Image" 
+                            class="max-w-full rounded-lg"
+                        >
+                        <button 
+                            id="cropToggle" 
+                            class="mt-2 w-full py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition hidden"
+                        >
+                            Select Crop Area
+                        </button>
+                        <button 
+                            id="processImage" 
+                            class="mt-2 w-full py-2 px-4 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition hidden"
+                        >
+                            Process Image
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800">Results</h2>
+                        <div id="resultContainer" class="space-y-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Expression</label>
+                                <input 
+                                    type="text" 
+                                    id="expressionResult" 
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200" 
+                                    readonly
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Solution</label>
+                                <input 
+                                    type="text" 
+                                    id="solutionResult" 
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200" 
+                                    readonly
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Math OCR. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageUpload = document.getElementById('imageUpload');
+            const uploadedImage = document.getElementById('uploadedImage');
+            const imageContainer = document.getElementById('imageContainer');
+            const cropToggle = document.getElementById('cropToggle');
+            const processImage = document.getElementById('processImage');
+            const expressionResult = document.getElementById('expressionResult');
+            const solutionResult = document.getElementById('solutionResult');
+
+            let cropper = null;
+            let originalImage = null;
+            let processedImage = null;
+
+            // Reset UI state
+            function resetUI() {
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                cropToggle.classList.add('hidden');
+                processImage.classList.add('hidden');
+                expressionResult.value = '';
+                solutionResult.value = '';
+            }
+
+            imageUpload.addEventListener('change', (e) => {
+                // Reset previous state
+                resetUI();
+
+                const file = e.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Resize image to 640px
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const maxSize = 640;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxSize) {
+                                height *= maxSize / width;
+                                width = maxSize;
+                            }
+                        } else {
+                            if (height > maxSize) {
+                                width *= maxSize / height;
+                                height = maxSize;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        uploadedImage.src = canvas.toDataURL();
+                        imageContainer.style.display = 'block';
+                        cropToggle.classList.remove('hidden');
+                        processImage.classList.remove('hidden');
+                        
+                        // Store original resized image
+                        originalImage = canvas.toDataURL();
+                    };
+                    img.src = event.target.result;
+                };
+
+                reader.readAsDataURL(file);
+            });
+
+            cropToggle.addEventListener('click', () => {
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                    cropToggle.textContent = 'Select Crop Area';
+                    processImage.disabled = false;
+                } else {
+                    cropper = new Cropper(uploadedImage, {
+                        aspectRatio: NaN,
+                        viewMode: 1,
+                    });
+                    cropToggle.textContent = 'Cancel Crop';
+                    processImage.disabled = true;
+                }
+            });
+
+            processImage.addEventListener('click', () => {
+                // Determine which image to process
+                let imageToProcess = originalImage;
+
+                // If cropper is active, use cropped image
+                if (cropper) {
+                    imageToProcess = cropper.getCroppedCanvas().toDataURL();
+                }
+
+                // Simulate processing (replace with actual API call)
+                processedImage = imageToProcess;
+                
+                // Mock result for demonstration
+                expressionResult.value = '2^3 + 5';
+                solutionResult.value = '13';
+
+                // In a real scenario, you'd make an API call to your Hugging Face Space
+                // fetch('YOUR_HUGGING_FACE_SPACE_URL', {
+                //     method: 'POST',
+                //     body: JSON.stringify({ image: imageToProcess }),
+                //     headers: { 'Content-Type': 'application/json' }
+                // })
+                // .then(response => response.json())
+                // .then(data => {
+                //     expressionResult.value = data.expression;
+                //     solutionResult.value = data.solution;
+                // })
+                // .catch(error => {
+                //     console.error('Error:', error);
+                //     expressionResult.value = 'Error processing image';
+                // });
+            });
+        });
+    </script>
+</body>
+</html>
