@@ -194,24 +194,20 @@
                 processedImage = imageToProcess;
                 
                 // Mock result for demonstration
-                expressionResult.value = '2^3 + 5';
-                solutionResult.value = '13';
+                processImage.textContent = "Processing...";
+                processImage.disabled = true;
 
-                // In a real scenario, you'd make an API call to your Hugging Face Space
-                // fetch('YOUR_HUGGING_FACE_SPACE_URL', {
-                //     method: 'POST',
-                //     body: JSON.stringify({ image: imageToProcess }),
-                //     headers: { 'Content-Type': 'application/json' }
-                // })
-                // .then(response => response.json())
-                // .then(data => {
-                //     expressionResult.value = data.expression;
-                //     solutionResult.value = data.solution;
-                // })
-                // .catch(error => {
-                //     console.error('Error:', error);
-                //     expressionResult.value = 'Error processing image';
-                // });
+                fetch("https://huggingface.co/spaces/oppastech/handwriting-math-ocr", { ... })
+                .then(response => response.json())
+                .then(data => {
+                    processImage.textContent = "Process Image";
+                    processImage.disabled = false;
+                })
+                .catch(error => {
+                    processImage.textContent = "Process Image";
+                    processImage.disabled = false;
+                });
+
             });
         });
     </script>
