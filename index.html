@@ -3,29 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Math OCR Solver</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Math OCR App</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Math OCR Solver</h1>
-    <p>Upload an image containing math expressions, and we'll solve it for you!</p>
-
-    <!-- File Upload Form -->
-    <form id="uploadForm">
-      <input type="file" id="imageInput" accept="image/*" required />
-      <button type="submit">Solve Expression</button>
-    </form>
-
-    <!-- Results Section -->
-    <div id="results" class="hidden">
-      <h2>Results</h2>
-      <p><strong>Original Expression:</strong> <span id="originalExpression"></span></p>
-      <p><strong>Display Expression:</strong> <span id="displayExpression"></span></p>
-      <p><strong>Space Expression:</strong> <span id="spaceExpression"></span></p>
-      <p><strong>Solved Expression:</strong> <span id="solvedExpression"></span></p>
+  <header>
+    <h1>Math OCR App</h1>
+    <p>Upload an image, resize it, crop a portion, and process it with our OCR tool!</p>
+  </header>
+  <main>
+    <div class="upload-container">
+      <input type="file" id="imageUpload" accept="image/*" />
+      <canvas id="imageCanvas"></canvas>
+      <button id="cropButton">Crop Selected Area</button>
+      <button id="processButton">Process Cropped Image</button>
     </div>
-  </div>
+    <div id="output">
+      <h2>Output</h2>
+      <img id="croppedImagePreview" alt="Cropped Image Preview" />
+      <iframe id="gradioApp" src="" frameborder="0"></iframe>
+    </div>
+  </main>
 
   <script src="script.js"></script>
 </body>

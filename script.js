@@ -1,55 +1,111 @@
-const form = document.getElementById("uploadForm");
-const resultsDiv = document.getElementById("results");
-const originalExpressionEl = document.getElementById("originalExpression");
-const displayExpressionEl = document.getElementById("displayExpression");
-const spaceExpressionEl = document.getElementById("spaceExpression");
-const solvedExpressionEl = document.getElementById("solvedExpression");
+const canvas = document.getElementById("imageCanvas");
+const ctx = canvas.getContext("2d");
+const imageUpload = document.getElementById("imageUpload");
+const cropButton = document.getElementById("cropButton");
+const processButton = document.getElementById("processButton");
+const croppedImagePreview = document.getElementById("croppedImagePreview");
+const gradioApp = document.getElementById("gradioApp");
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+let image = new Image();
+let startX, startY, endX, endY;
 
-  const fileInput = document.getElementById("imageInput");
-  
-  if (!fileInput.files.length) {
-    alert("Please upload an image.");
-    return;
-  }
+// Resize image to fit within a width of 640px
+function resizeImage(img) {
+    const MAX_WIDTH = 640;
 
-  const file = fileInput.files[0];
-  
-  // Prepare form data
-  const formData = new FormData();
-  formData.append("data", file);
+    let width = img.naturalWidth;
+    let height = img.naturalHeight;
 
-  try {
-    // Replace 'your_huggingface_space_url' with your actual Hugging Face Space API URL
-    // Note: This URL is likely incorrect; you need to use the actual API endpoint for your Space
-    const response = await fetch("https://api-inference.huggingface.co/models/oppastech/handwriting-math-ocr", {
-      method: "POST",
-      body: formData,
-      headers: {
-        // If authentication is required, include your API token here
-        "Authorization": "Bearer YOUR_API_TOKEN",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`);
+    if (width > MAX_WIDTH) {
+        height *= MAX_WIDTH / width;
+        width = MAX_WIDTH;
     }
 
-    const result = await response.json();
+    canvas.width = width;
+    canvas.height = height;
 
-    // Update results section
-    // Note: The structure of 'result' might vary based on your API's response format
-    originalExpressionEl.textContent = result.original_expression || "N/A";
-    displayExpressionEl.textContent = result.display_expression || "N/A";
-    spaceExpressionEl.textContent = result.space_expression || "N/A";
-    solvedExpressionEl.textContent = result.solved_expression || "N/A";
+    ctx.drawImage(img, 0, 0, width, height);
+}
 
-    resultsDiv.classList.remove("hidden");
-    
-  } catch (error) {
-    alert(`Failed to process the image. ${error.message}`);
-    console.error(error);
-  }
+// Handle image upload
+imageUpload.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        image.src = e.target.result;
+
+        image.onload = function () {
+            resizeImage(image);
+        };
+    };
+    reader.readAsDataURL(file);
+});
+
+// Select portion of the image for cropping
+let isSelecting = false;
+
+canvas.addEventListener("mousedown", (e) => {
+    isSelecting = true;
+
+    const rect = canvas.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+
+    ctx.strokeStyle = "red";
+});
+
+canvas.addEventListener("mousemove", (e) => {
+    if (!isSelecting) return;
+
+    const rect = canvas.getBoundingClientRect();
+    endX = e.clientX - rect.left;
+    endY = e.clientY - rect.top;
+
+    // Redraw the image and draw selection rectangle
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+});
+
+canvas.addEventListener("mouseup", () => {
+    isSelecting = false;
+});
+
+// Crop the selected area
+cropButton.addEventListener("click", () => {
+    if (!startX || !startY || !endX || !endY) return;
+
+    const cropWidth = endX - startX;
+    const cropHeight = endY - startY;
+
+    const croppedCanvas = document.createElement("canvas");
+    croppedCanvas.width = cropWidth;
+    croppedCanvas.height = cropHeight;
+
+    const croppedCtx = croppedCanvas.getContext("2d");
+    croppedCtx.drawImage(
+        canvas,
+        startX,
+        startY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        cropWidth,
+        cropHeight
+    );
+
+    // Display cropped image preview
+    croppedImagePreview.src = croppedCanvas.toDataURL();
+});
+
+// Process the cropped image (send to Hugging Face Gradio app)
+processButton.addEventListener("click", () => {
+    if (!croppedImagePreview.src) return;
+
+    // Pass the cropped image to your Hugging Face Gradio app
+    gradioApp.src =
+        "https://your-huggingface-space-url.hf.space?image=" +
+        encodeURIComponent(croppedImagePreview.src);
 });
