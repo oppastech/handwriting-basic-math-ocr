@@ -1,19 +1,32 @@
-<input type="file" id="imageUpload">
-<button onclick="sendImage()">Predict</button>
-<p id="output"></p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math OCR Solver</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Math OCR Solver</h1>
+    <p>Upload an image containing math expressions, and we'll solve it for you!</p>
 
-<script>
-    async function sendImage() {
-        let input = document.getElementById("imageUpload").files[0];
-        let formData = new FormData();
-        formData.append("file", input);
+    <!-- File Upload Form -->
+    <form id="uploadForm">
+      <input type="file" id="imageInput" accept="image/*" required />
+      <button type="submit">Solve Expression</button>
+    </form>
 
-        let response = await fetch("https://huggingface.co/spaces/oppastech/handwriting-math-ocr", {
-            method: "POST",
-            body: formData
-        });
+    <!-- Results Section -->
+    <div id="results" class="hidden">
+      <h2>Results</h2>
+      <p><strong>Original Expression:</strong> <span id="originalExpression"></span></p>
+      <p><strong>Display Expression:</strong> <span id="displayExpression"></span></p>
+      <p><strong>Space Expression:</strong> <span id="spaceExpression"></span></p>
+      <p><strong>Solved Expression:</strong> <span id="solvedExpression"></span></p>
+    </div>
+  </div>
 
-        let result = await response.text();
-        document.getElementById("output").innerText = result;
-    }
-</script>
+  <script src="script.js"></script>
+</body>
+</html>
